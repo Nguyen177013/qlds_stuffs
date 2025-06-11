@@ -157,7 +157,7 @@ export async function getUserListTask(boardId=''){
                 }
                 result.push(taskDetail);
             }
-            return result;
+            return 1;
         }
     }catch(err){
         let logError = "error while trying to get list task";
@@ -166,6 +166,102 @@ export async function getUserListTask(boardId=''){
         return util.log(log);
     }
 }
+// prototype: 'v2' - this is a new version of the function that returns a list of tasks by using user uid
+export async function getUserListTaskV2(){
+    const userLogedIn = await checkUserLogin(userName)
+    if(!userLogedIn){
+        console.log('user token is expired or not loged in');
+    }
+    const requestUrl = myEnv.parsed['BASE_URL'] != undefined ? myEnv.parsed['BASE_URL']+'/api/DashboardQLCV/getDataRP': '';
+    try{
+        const params = {
+            searchText: '',
+            projectID: '',
+            uids: listUser[userName].userId,
+        }
+        const headers= {
+            'authorization': 'Bearer '+listUser[userName].token,
+            'Content-Type': 'application/json',
+            'username': userName
+        }
+        const response = await axios.get(requestUrl,{
+            params: params,
+            headers: headers
+        });
+        if (response.status === 200 && response.data != null) {
+            if(response.data.Status != 1){
+                console.log('can not get list task, please try again');
+                return 0;
+            }
+            const doingAssigneeTask = response.data.Data.DoingAssigneeTask;
+            const doingAssigneeTaskStart = response.data.Data.DoingAssigneeTaskStart;
+            const doingCreateByTaskNotStart = response.data.Data.DoingCreateByTaskNotStart;
+            const doingCreateByTaskStart = response.data.Data.DoingCreateByTaskStart;
+            const result = [];
+            if(Array.isArray(doingAssigneeTask) && doingAssigneeTask.length > 0){
+                for(let i=0; i< doingAssigneeTask.length; i++){
+                    const taskDetail = {
+                        taskId: doingAssigneeTask[i].TaskID,
+                        taskName: doingAssigneeTask[i].TaskName,
+                        timeHasDone: doingAssigneeTask[i].HourNum,
+                        timeLimited: doingAssigneeTask[i].ScheduleH,
+                        startDate: doingAssigneeTask[i].ScheduleSD,
+                        endDate: doingAssigneeTask[i].ScheduleED
+                    }
+                    result.push(taskDetail);
+                }
+            }
+            if(Array.isArray(doingAssigneeTaskStart) && doingAssigneeTaskStart.length > 0){
+                for(let i=0; i< doingAssigneeTaskStart.length; i++){
+                    const taskDetail = {
+                        taskId: doingAssigneeTaskStart[i].TaskID,
+                        taskName: doingAssigneeTaskStart[i].TaskName,
+                        timeHasDone: doingAssigneeTaskStart[i].HourNum,
+                        timeLimited: doingAssigneeTaskStart[i].ScheduleH,
+                        startDate: doingAssigneeTaskStart[i].ScheduleSD,
+                        endDate: doingAssigneeTaskStart[i].ScheduleED
+                    }
+                    result.push(taskDetail);
+                }
+            }
+            if(Array.isArray(doingCreateByTaskNotStart) && doingCreateByTaskNotStart.length > 0){
+                for(let i=0; i< doingCreateByTaskNotStart.length; i++){
+                    const taskDetail = {
+                        taskId: doingCreateByTaskNotStart[i].TaskID,
+                        taskName: doingCreateByTaskNotStart[i].TaskName,
+                        timeHasDone: doingCreateByTaskNotStart[i].HourNum,
+                        timeLimited: doingCreateByTaskNotStart[i].ScheduleH,
+                        startDate: doingCreateByTaskNotStart[i].ScheduleSD,
+                        endDate: doingCreateByTaskNotStart[i].ScheduleED
+                    }
+                    result.push(taskDetail);
+                }
+            }
+            if(Array.isArray(doingCreateByTaskStart) && doingCreateByTaskStart.length > 0){
+                for(let i=0; i< doingCreateByTaskStart.length; i++){
+                    const taskDetail = {
+                        taskId: doingCreateByTaskStart[i].TaskID,
+                        taskName: doingCreateByTaskStart[i].TaskName,
+                        timeHasDone: doingCreateByTaskStart[i].HourNum,
+                        timeLimited: doingCreateByTaskStart[i].ScheduleH,
+                        startDate: doingCreateByTaskStart[i].ScheduleSD,
+                        endDate: doingCreateByTaskStart[i].ScheduleED
+                    }
+                    result.push(taskDetail);
+                }
+            }
+            console.log(result);
+            return 1;
+        }
+    }catch(err){
+        let logError = "===error while trying to get list task===";
+        log+= logError + '\n'+ err;
+        console.log('error while trying to get list task');
+        util.log(log)
+        return 0;
+    }
+}
+
 export async function startOrStopTask(taskId){
     if(taskId == undefined || taskId == ''){
         console.log('taskId is empty');
@@ -194,7 +290,6 @@ export async function startOrStopTask(taskId){
                 console.log('task does not exist or has been deleted');
                 return 0;
             }
-            console.log('updated task successfully');
             return 1;
         }
     }catch(err){
@@ -270,14 +365,14 @@ export async function writeReport(taskId){
         if(response.status === 200 && response.data != null){
             const taskDetail = response.data;
             console.log("write log successfully");
-            console.log(taskDetail);
         }
-        return {};
+        return 1;
     }catch(err){
         console.log('can not write report task');
         let logError = '\n===can not write report task===\n';
         log+= logError + err;
         util.log(log);
+        return 0;
     }
 }
 export async function markCompletedTask(taskId){
@@ -302,14 +397,14 @@ export async function markCompletedTask(taskId){
         if(response.status === 200 && response.data != null){
             const taskDetail = response.data;
             console.log("mark task completed");
-            console.log(taskDetail);
         }
-        return {};
+        return 1;
     }catch(err){
         console.log('can not mark task completed');
         let logError = '\n===can not mark task completed===\n';
         log+= logError + err;
         util.log(log);
+        return 0;
     }
 }
 export async function startOrStopTaskAuto(taskId, callBack){
@@ -340,6 +435,7 @@ export async function startOrStopTaskAuto(taskId, callBack){
         let logError = '\n===start task auto===\n';
         log+= logError + err;
         util.log(log);
+        return 0;
     }
 }
 async function checkUserLogin(userName){

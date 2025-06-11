@@ -16,10 +16,10 @@ export function hadName(targetName, listName){
     return false;
 }
 export function writeFile(json){
-    fs.writeFile('./accounts.json', JSON.stringify(json), (err)=>{
+    fs.writeFile('./accounts.json', JSON.stringify(json, null, 2), (err)=>{
     });
 }
 export function log(log){
-    fs.writeFile('./log.txt', JSON.stringify(log), (err)=>{
+    fs.writeFile('./log.txt',JSON.stringify(log, null, 2), (err)=>{
     });
 }

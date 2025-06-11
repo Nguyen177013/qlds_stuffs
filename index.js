@@ -56,6 +56,16 @@ function listAction(answer, callBack){
                 callBack();
             });
             break;
+        case 'listV2':
+           qldaService.getUserListTaskV2(boardId).then(result =>{
+                if(result == 0){
+                    console.log('error while trying to get list task');
+                    return callBack();
+                }
+                console.log(result);
+                return callBack();
+           })
+            break;
         case 'detail':
             rl.question('Please type your task id: ', async (regis)=>{
                 if(regis.trim() === ''){
@@ -76,7 +86,11 @@ function listAction(answer, callBack){
                 }
                 const taskId = regis.trim();
                 let result = await qldaService.startOrStopTask(taskId);
-                console.log(result);
+                if(result == 1){
+                    console.log('task updated successfully!');
+                } else {
+                    console.log('task does not exist or is not in progress.');
+                }
                 callBack();
             });
             break;
