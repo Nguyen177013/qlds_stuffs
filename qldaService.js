@@ -176,7 +176,7 @@ export async function getUserListTaskV2(){
     try{
         const params = {
             searchText: '',
-            projectID: '',
+            projectIDs: '',
             uids: listUser[userName].userId,
         }
         const headers= {
@@ -418,6 +418,11 @@ export async function startOrStopTaskAuto(taskId, callBack){
         if(taskDetail.timeHasDone != null){
             timeLimited = timeLimited - taskDetail.timeHasDone;
         }
+        if(timeLimited <= 0){
+            await writeReport(taskId);
+            await markCompletedTask(taskId);
+            return callBack();
+        }
         let limitedTime = timeLimited * 60 * 60 * 1000;
         console.log("Started auto at " +util.getTime());
         const deadline = util.getTime(timeLimited);
@@ -425,9 +430,9 @@ export async function startOrStopTaskAuto(taskId, callBack){
         await startOrStopTask(taskId);
         setTimeout(async ()=>{
             console.log("Stoped auto at: " +util.getTime());
-            await startOrStopTask(userName, taskId);
-            await writeReport(userName, taskId);
-            await markCompletedTask(userName, taskId);
+            await startOrStopTask(taskId);
+            await writeReport(taskId);
+            await markCompletedTask(taskId);
             callBack();
         }, limitedTime)
     }catch(err){

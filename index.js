@@ -11,6 +11,7 @@ async function askQuestion() {
     console.log("-login");
     console.log("-board");
     console.log("-list");
+    console.log("-listV2");
     console.log("-detail");
     console.log("-update");
     console.log("-auto");
@@ -57,7 +58,7 @@ function listAction(answer, callBack){
             });
             break;
         case 'listV2':
-           qldaService.getUserListTaskV2(boardId).then(result =>{
+           qldaService.getUserListTaskV2().then(result =>{
                 if(result == 0){
                     console.log('error while trying to get list task');
                     return callBack();
