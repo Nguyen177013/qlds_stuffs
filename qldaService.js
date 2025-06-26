@@ -310,6 +310,9 @@ export async function getTaskDetail(taskId){
             if(listUser[userName].taskPending == undefined){
                 listUser[userName].taskPending = [];
             }
+            if(taskDetailStatusID == '10'){
+                return {}
+            }
             listUser[userName].taskPending.push(taskDetail.ID);
             const taskInfo = {
                 taskId: taskDetail.ID,
@@ -326,7 +329,7 @@ export async function getTaskDetail(taskId){
                         break;
                     case 2:
                         if(taskDetail.DoingType){
-                            taskInfo.status = taskDetail.DoingType == 1 ? 'Doing' : 'Paused';
+                            taskInfo.status = obj.DoingType == 1 ? 'Doing' : 'Paused';
                         }
                         break;
                     default:
@@ -412,13 +415,13 @@ export async function startOrStopTaskAuto(taskId, callBack){
     try{
         const taskDetail = await getTaskDetail(taskId);
         if(taskDetail == null || taskDetail.taskId == undefined){
-            console.log('Task does not exist');
+            console.log('Task does not exist or completed');
             return callBack();
         }
-        if(taskDetail.status == 'Doing'){
-            console.log('Task is already in progress');
-            return callBack();
-        }
+        // if(taskDetail.status == 'Doing'){
+        //     console.log('Task is already in progress');
+        //     return callBack();
+        // }
         let timeLimited = taskDetail.timeLimited != undefined ? taskDetail.timeLimited : 0;
         if(taskDetail.timeHasDone != null){
             timeLimited = timeLimited - taskDetail.timeHasDone;

@@ -19,8 +19,12 @@ export function writeFile(json){
     fs.writeFile('./accounts.json', JSON.stringify(json, null, 2), (err)=>{
     });
 }
-export function log(log){
-    fs.writeFile('./log.txt',JSON.stringify(log, null, 2), (err)=>{
+export function log(log) {
+    const logContent = JSON.stringify(log, null, 2) + '\n';
+    fs.appendFile('./log.txt', logContent, (err) => {
+        if (err) {
+            console.error('Error writing to file:', err);
+        }
     });
 }
 export function convertIntoMilliSecond(timeString){
