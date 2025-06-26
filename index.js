@@ -63,7 +63,6 @@ function listAction(answer, callBack){
                     console.log('error while trying to get list task');
                     return callBack();
                 }
-                console.log(result);
                 return callBack();
            })
             break;

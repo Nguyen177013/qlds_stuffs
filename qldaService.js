@@ -144,6 +144,9 @@ export async function getUserListTask(boardId=''){
                 const tasks = taskActions[i].Tasks;
                 const listTaskDetail = [];
                 for(let j=0; j< tasks.length; j++){
+                    if(tasks[j].StatusID == 10 || tasks[j].StatusID == 3){
+                        continue;
+                    }
                     const task = await getTaskDetail(tasks[j].ID);
                     if(task.taskId != undefined){
                         listTaskDetail.push(JSON.stringify(task, null, 2));
@@ -200,53 +203,37 @@ export async function getUserListTaskV2(){
             const result = [];
             if(Array.isArray(doingAssigneeTask) && doingAssigneeTask.length > 0){
                 for(let i=0; i< doingAssigneeTask.length; i++){
-                    const taskDetail = {
-                        taskId: doingAssigneeTask[i].TaskID,
-                        taskName: doingAssigneeTask[i].TaskName,
-                        timeHasDone: doingAssigneeTask[i].HourNum,
-                        timeLimited: doingAssigneeTask[i].ScheduleH,
-                        startDate: doingAssigneeTask[i].ScheduleSD,
-                        endDate: doingAssigneeTask[i].ScheduleED
+                    if(doingAssigneeTask[i].StatusID == 10 || doingAssigneeTask[i].StatusID == 3){
+                        continue;
                     }
+                    const taskDetail = util.createTaskDetail(doingAssigneeTask[i]);
                     result.push(taskDetail);
                 }
             }
             if(Array.isArray(doingAssigneeTaskStart) && doingAssigneeTaskStart.length > 0){
                 for(let i=0; i< doingAssigneeTaskStart.length; i++){
-                    const taskDetail = {
-                        taskId: doingAssigneeTaskStart[i].TaskID,
-                        taskName: doingAssigneeTaskStart[i].TaskName,
-                        timeHasDone: doingAssigneeTaskStart[i].HourNum,
-                        timeLimited: doingAssigneeTaskStart[i].ScheduleH,
-                        startDate: doingAssigneeTaskStart[i].ScheduleSD,
-                        endDate: doingAssigneeTaskStart[i].ScheduleED
+                    if(doingAssigneeTaskStart[i].StatusID == 10 || doingAssigneeTaskStart[i].StatusID == 3){
+                        continue;
                     }
+                    const taskDetail = util.createTaskDetail(doingAssigneeTaskStart[i]);
                     result.push(taskDetail);
                 }
             }
             if(Array.isArray(doingCreateByTaskNotStart) && doingCreateByTaskNotStart.length > 0){
                 for(let i=0; i< doingCreateByTaskNotStart.length; i++){
-                    const taskDetail = {
-                        taskId: doingCreateByTaskNotStart[i].TaskID,
-                        taskName: doingCreateByTaskNotStart[i].TaskName,
-                        timeHasDone: doingCreateByTaskNotStart[i].HourNum,
-                        timeLimited: doingCreateByTaskNotStart[i].ScheduleH,
-                        startDate: doingCreateByTaskNotStart[i].ScheduleSD,
-                        endDate: doingCreateByTaskNotStart[i].ScheduleED
+                    if(doingCreateByTaskNotStart[i].StatusID == 10 || doingCreateByTaskNotStart[i].StatusID == 3){
+                        continue;
                     }
+                    const taskDetail = util.createTaskDetail(doingCreateByTaskNotStart[i]);
                     result.push(taskDetail);
                 }
             }
             if(Array.isArray(doingCreateByTaskStart) && doingCreateByTaskStart.length > 0){
                 for(let i=0; i< doingCreateByTaskStart.length; i++){
-                    const taskDetail = {
-                        taskId: doingCreateByTaskStart[i].TaskID,
-                        taskName: doingCreateByTaskStart[i].TaskName,
-                        timeHasDone: doingCreateByTaskStart[i].HourNum,
-                        timeLimited: doingCreateByTaskStart[i].ScheduleH,
-                        startDate: doingCreateByTaskStart[i].ScheduleSD,
-                        endDate: doingCreateByTaskStart[i].ScheduleED
+                    if(doingCreateByTaskStart[i].StatusID == 10 || doingCreateByTaskStart[i].StatusID == 3){
+                        continue;
                     }
+                    const taskDetail = util.createTaskDetail(doingCreateByTaskStart[i]);
                     result.push(taskDetail);
                 }
             }
@@ -332,6 +319,20 @@ export async function getTaskDetail(taskId){
                 startDate: taskDetail.ScheduleStartDate,
                 endDate: taskDetail.ScheduleEndDate
             }
+            if(taskDetail.StatusID != undefined){
+                switch(taskDetail.StatusID){
+                    case 0:
+                        taskInfo.status = 'Waiting';
+                        break;
+                    case 2:
+                        if(taskDetail.DoingType){
+                            taskInfo.status = taskDetail.DoingType == 1 ? 'Doing' : 'Paused';
+                        }
+                        break;
+                    default:
+                        taskInfo.status = 'Unknown';
+                }
+            }
             return taskInfo;
         }
         return {};
@@ -411,8 +412,12 @@ export async function startOrStopTaskAuto(taskId, callBack){
     try{
         const taskDetail = await getTaskDetail(taskId);
         if(taskDetail == null || taskDetail.taskId == undefined){
-            console.log('Task does not exist please type your task');
-            return;
+            console.log('Task does not exist');
+            return callBack();
+        }
+        if(taskDetail.status == 'Doing'){
+            console.log('Task is already in progress');
+            return callBack();
         }
         let timeLimited = taskDetail.timeLimited != undefined ? taskDetail.timeLimited : 0;
         if(taskDetail.timeHasDone != null){
@@ -433,14 +438,14 @@ export async function startOrStopTaskAuto(taskId, callBack){
             await startOrStopTask(taskId);
             await writeReport(taskId);
             await markCompletedTask(taskId);
-            callBack();
-        }, limitedTime)
+        }, limitedTime);
+        callBack();
     }catch(err){
         console.log('can not auto start task');
         let logError = '\n===start task auto===\n';
         log+= logError + err;
         util.log(log);
-        return 0;
+        return callBack();
     }
 }
 async function checkUserLogin(userName){

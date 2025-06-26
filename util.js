@@ -23,3 +23,46 @@ export function log(log){
     fs.writeFile('./log.txt',JSON.stringify(log, null, 2), (err)=>{
     });
 }
+export function convertIntoMilliSecond(timeString){
+    if(typeof timeString == 'number'){
+        return timeString * 60 * 60 * 1000; // Convert hours to milliseconds
+    }
+    if(typeof timeString == 'string'){
+        if(timeString.length <0){
+            return 0;
+        }
+        let time = timeString.split(':')
+        let hours = parseInt(time[0]) || 0;
+        let minutes = parseInt(time[1]) || 0;
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0).getTime();
+    }
+}
+export function checkTimeLimited(timeSchedule, timeLimited){
+    return timeSchedule < timeLimited ;
+}
+export function createTaskDetail(obj){
+    let result = {
+        taskId: obj.TaskID,
+        taskName: obj.TaskName,
+        timeHasDone: obj.HourNum,
+        timeLimited: obj.ScheduleH,
+        startDate: obj.ScheduleSD,
+        endDate: obj.ScheduleED
+    };
+    if(obj.StatusID != undefined){
+        switch(obj.StatusID){
+            case 0:
+                result.status = 'Waiting';
+                break;
+            case 2:
+                if(obj.DoingType){
+                    result.status = obj.DoingType == 1 ? 'Doing' : 'Paused';
+                }
+                break;
+            default:
+                result.status = 'Unknown';
+        }
+    }
+    return result;
+}
