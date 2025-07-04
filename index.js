@@ -14,6 +14,9 @@ async function askQuestion() {
     console.log("-listV2");
     console.log("-detail");
     console.log("-update");
+    console.log("-report");
+    console.log("-mark");
+    console.log("-endStep");
     console.log("-auto");
     rl.question('please select your action: ', (answer) => {
         if (answer.toLowerCase() === 'exit') {
@@ -52,8 +55,7 @@ function listAction(answer, callBack){
                     return callBack();
                 }
                 const boardId = regis.trim();
-                let result = await qldaService.getUserListTask(boardId);
-                console.log(result);
+                qldaService.getUserListTask(boardId);
                 callBack();
             });
             break;
@@ -94,6 +96,17 @@ function listAction(answer, callBack){
                 callBack();
             });
             break;
+        case 'endStep':
+            rl.question('Please type your task id: ', async (regis)=>{
+                if(regis.trim() === ''){
+                    console.log("Please type your task id !");
+                    return callBack();
+                }
+                const taskId = regis.trim();
+                await qldaService.endStepTask(taskId);
+                callBack();
+            });
+            break;
         case 'auto':
             rl.question('Please type your task id: ', async (regis)=>{
                 if(regis.trim() === ''){
@@ -102,6 +115,28 @@ function listAction(answer, callBack){
                 }
                 const taskId = regis.trim();
                 await qldaService.startOrStopTaskAuto(taskId, callBack);
+            });
+            break;
+        case 'report':
+            rl.question('Please type your task id: ', async (regis)=>{
+                if(regis.trim() === ''){
+                    console.log("Please type your task id !");
+                    return callBack();
+                }
+                const taskId = regis.trim();
+                await qldaService.writeReport(taskId);
+                return callBack();
+            });
+            break;
+        case 'mark':
+            rl.question('Please type your task id: ', async (regis)=>{
+                if(regis.trim() === ''){
+                    console.log("Please type your task id !");
+                    return callBack();
+                }
+                const taskId = regis.trim();
+                await qldaService.markCompletedTask(taskId);
+                return callBack();
             });
             break;
         default:

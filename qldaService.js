@@ -7,13 +7,9 @@ const listIgnoreAction = JSON.parse(myEnv.parsed['IGNORE_ACTIONS_NAME']);
 const userName = myEnv.parsed['USERNAME'];
 const password = myEnv.parsed['PASSWORD'];
 let listUser = {};
-let log = '';
 fs.readFile("./accounts.json", "utf8", (error, data) => {
     let account = JSON.parse(data);
     listUser = account;
-})
-fs.readFile("./log.txt", "utf8", (error, data) => {
-    log = data;
 })
 export async function login(){
     const requestUrl = myEnv.parsed['BASE_URL'] != undefined ? myEnv.parsed['BASE_URL']+'/Token': '';
@@ -58,7 +54,7 @@ export async function login(){
             console.log('error while trying to reach ' + requestUrl);
             console.log('login failed something went wrong');
             let logError = '\n===login failed===\n';
-            log+= logError + err;
+            logError+= err;
             util.log(log);
             return 0;
         }
@@ -100,7 +96,7 @@ export async function getListBoard(){
     }catch(err){
         console.log("error while trying to get list board");
         let logError = '\n===error while trying to get list board===\n';
-        log+= logError + err;
+        logError+= err;
         util.log(log);
     }
 }
@@ -160,6 +156,11 @@ export async function getUserListTask(boardId=''){
                 }
                 result.push(taskDetail);
             }
+            if(result.length == 0){
+                console.log("Currently you have no task to do");
+                return 1;
+            }
+            console.log(result);
             return 1;
         }
     }catch(err){
@@ -237,6 +238,10 @@ export async function getUserListTaskV2(){
                     result.push(taskDetail);
                 }
             }
+            if(result.length == 0){
+                console.log("Currently you have no task to do");
+                return 1;
+            }
             console.log(result);
             return 1;
         }
@@ -282,7 +287,7 @@ export async function startOrStopTask(taskId){
     }catch(err){
         console.log("error while trying to updated task");
         let logError = '\n===error while trying to updated task===\n';
-        log+= logError + err;
+        logError+= err;
         util.log(log);
     }
 }
@@ -310,7 +315,7 @@ export async function getTaskDetail(taskId){
             if(listUser[userName].taskPending == undefined){
                 listUser[userName].taskPending = [];
             }
-            if(taskDetailStatusID == '10'){
+            if(taskDetail.taskDetailStatusID!= undefined && taskDetail.taskDetailStatusID == '10'){
                 return {}
             }
             listUser[userName].taskPending.push(taskDetail.ID);
@@ -320,6 +325,7 @@ export async function getTaskDetail(taskId){
                 timeHasDone: taskDetail.HourNum,
                 timeLimited: taskDetail.ScheduleH,
                 startDate: taskDetail.ScheduleStartDate,
+                stepId: taskDetail.StepID,
                 endDate: taskDetail.ScheduleEndDate
             }
             if(taskDetail.StatusID != undefined){
@@ -329,7 +335,7 @@ export async function getTaskDetail(taskId){
                         break;
                     case 2:
                         if(taskDetail.DoingType){
-                            taskInfo.status = obj.DoingType == 1 ? 'Doing' : 'Paused';
+                            taskInfo.status = taskDetail.DoingType == 1 ? 'Doing' : 'Paused';
                         }
                         break;
                     default:
@@ -342,7 +348,7 @@ export async function getTaskDetail(taskId){
     }catch(err){
         console.log('\n===can not get task detail===\n');
         let logError = '\n===can not get task detail===\n';
-        log+= logError + err;
+        logError+= err;
         util.log(log);
     }
 }
@@ -374,7 +380,7 @@ export async function writeReport(taskId){
     }catch(err){
         console.log('can not write report task');
         let logError = '\n===can not write report task===\n';
-        log+= logError + err;
+        logError+= err;
         util.log(log);
         return 0;
     }
@@ -406,7 +412,7 @@ export async function markCompletedTask(taskId){
     }catch(err){
         console.log('can not mark task completed');
         let logError = '\n===can not mark task completed===\n';
-        log+= logError + err;
+        logError+= err;
         util.log(log);
         return 0;
     }
@@ -418,10 +424,10 @@ export async function startOrStopTaskAuto(taskId, callBack){
             console.log('Task does not exist or completed');
             return callBack();
         }
-        // if(taskDetail.status == 'Doing'){
-        //     console.log('Task is already in progress');
-        //     return callBack();
-        // }
+        if(taskDetail.status == 'Doing'){
+            console.log('Task is already in progress');
+            return callBack();
+        }
         let timeLimited = taskDetail.timeLimited != undefined ? taskDetail.timeLimited : 0;
         if(taskDetail.timeHasDone != null){
             timeLimited = timeLimited - taskDetail.timeHasDone;
@@ -429,6 +435,7 @@ export async function startOrStopTaskAuto(taskId, callBack){
         if(timeLimited <= 0){
             await writeReport(taskId);
             await markCompletedTask(taskId);
+            await endStepTask(taskId, taskDetail);
             return callBack();
         }
         let limitedTime = timeLimited * 60 * 60 * 1000;
@@ -441,14 +448,142 @@ export async function startOrStopTaskAuto(taskId, callBack){
             await startOrStopTask(taskId);
             await writeReport(taskId);
             await markCompletedTask(taskId);
+            await endStepTask(taskId, taskDetail);
         }, limitedTime);
         callBack();
     }catch(err){
         console.log('can not auto start task');
         let logError = '\n===start task auto===\n';
-        log+= logError + err;
+        logError+= err;
         util.log(log);
         return callBack();
+    }
+}
+async function  getBoardByTaskId(taskId){
+    if(taskId == undefined || taskId == ''){
+        console.log('taskId is empty');
+        return null;
+    }
+    const requestUrl = myEnv.parsed['BASE_URL'] != undefined ? myEnv.parsed['BASE_URL']+'/api/DashboardQLCV/getBoardByTaskId': '';
+    const params = {
+       iD: taskId
+    }
+    if(requestUrl == ''){
+        console.log('BASE_URL is not defined');
+        return 'Invalid base url';
+    }
+    try{
+        const response = await axios.get(requestUrl,{
+            params: params,
+            headers: {
+                'authorization': 'Bearer '+listUser[userName].token,
+                'Content-Type': 'application/json',
+                'username': userName
+            }
+        });      
+        if (response.status === 200 && response.data != null) {
+            const boardId = response.data.Data;
+            return boardId.BoardID ? boardId.BoardID : null;;
+        }
+    }catch(err){
+        console.log("error while trying to get board by task ID");
+        let logError = '\n===error while trying to get board by task ID===\n';
+        logError+= err;
+        util.log(log);
+    }
+}
+async function getStepByBoardId(boardID){
+    if(boardID == undefined || boardID == ''){
+        console.log('boardID is empty');
+        return null;
+    }
+    const requestUrl = myEnv.parsed['BASE_URL'] != undefined ? myEnv.parsed['BASE_URL']+'/api/Step/GetByBoardID': '';
+    const params = {
+        boardID: boardID
+    }
+    if(requestUrl == ''){
+        console.log('BASE_URL is not defined');
+        return 'Invalid base url';
+    }
+    try{
+        const response = await axios.get(requestUrl,{
+            params: params,
+            headers: {
+                'authorization': 'Bearer '+listUser[userName].token,
+                'Content-Type': 'application/json',
+                'username': userName
+            }
+        });      
+        if (response.status === 200 && response.data != null) {
+            const steps = response.data.Data;
+            const result = [];
+            if(steps != undefined && steps.length > 0){
+                for(let i=0; i< steps.length; i++){
+                    const step = steps[i];
+                    const stepInfo = {
+                        id: step.ID,
+                        name: step.Name,
+                    };
+                    result.push(stepInfo);
+                }
+                return result;
+            }
+            return [];
+        }
+    }catch(err){
+        console.log("error while trying to get board by task ID");
+        let logError = '\n===error while trying to get board by task ID===\n';
+        logError+= err;
+        util.log(log);
+    }
+}
+export async function endStepTask(taskId, data = null){
+    if(taskId == undefined || taskId == ''){
+        console.log('taskId is empty');
+        return null;
+    }
+    let taskData = data;
+    if(taskData == null || taskData == undefined){
+        taskData = await getTaskDetail(taskId);
+    }
+    const boardId = await getBoardByTaskId(taskId);
+    const listStep = await getStepByBoardId(boardId);
+    if(listStep == null || listStep.length == 0){
+        console.log('can not get step by board ID');
+        return 0;
+    }
+    const endStep = listStep[listStep.length - 2];
+    const requestUrl = myEnv.parsed['BASE_URL'] != undefined ? myEnv.parsed['BASE_URL']+'/api/Step/UpdateTaskByStep': '';
+    if(requestUrl == ''){
+        console.log('BASE_URL is not defined');
+        return 'Invalid base url';
+    }
+    const request = {
+        ID: taskId,
+        StepID_1: taskData.stepId,
+        StepID_2: endStep.id,
+    }
+    try{
+        const response = await axios({
+            url: requestUrl,
+            method: 'POST',
+            headers: {
+                'authorization': 'Bearer '+listUser[userName].token,
+                'Content-Type': 'application/json',
+                'username': userName
+            },
+            data: request
+        });   
+        if (response.status === 200 && response.data != null) {
+            console.log('Updated into last step');
+            return 1;
+        }
+    }catch(err){
+        console.log("error while trying to end step by task ID");
+        let logError = '\n===error while trying to end step by task ID===\n';
+        logError+= err;
+        util.log(log);
+        return 0;
     }
 }
 async function checkUserLogin(userName){

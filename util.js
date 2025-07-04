@@ -52,7 +52,8 @@ export function createTaskDetail(obj){
         timeHasDone: obj.HourNum,
         timeLimited: obj.ScheduleH,
         startDate: obj.ScheduleSD,
-        endDate: obj.ScheduleED
+        endDate: obj.ScheduleED,
+        stepId: obj.StepID
     };
     if(obj.StatusID != undefined){
         switch(obj.StatusID){
