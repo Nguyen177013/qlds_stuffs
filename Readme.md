@@ -79,5 +79,5 @@ Vì trang quản lý dự án đã không cho chạy cùng lúc nhiều task và
 
 # Tổng kết
 Đây là 1 dự án cá nhân của 1 dev lỏ làm để quan sát số lượng task đang có, kiểm tra và tránh trường hợp quên start task hoặc đóng task.<br>
-Nếu có bug thì hãy lạy chúa theo đạo phật vì tui lười code tiếp lắm 🙏🏿.<br>
+Nếu có bug thì hãy cầu nguyện 🙏🏿.<br>
 Cảm ơn bạn đã đọc phần read me này.
